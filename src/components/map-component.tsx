@@ -9,7 +9,12 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 const DARK_STYLE  = 'mapbox://styles/mapbox/dark-v11'
 const LIGHT_STYLE = 'mapbox://styles/mapbox/light-v11'
 
+// Coordenadas exactas del centro de Tepeji del Río
 const TEPEJI_CENTER: [number, number] = [-99.3667, 20.2167]
+const TEPEJI_ZOOM = 13
+
+const ACCENT_DARK  = '#00aaff'
+const ACCENT_LIGHT = '#0088cc'
 
 interface MapComponentProps {
   spots?: Spot[]
@@ -24,35 +29,29 @@ function createSkatePin(color: string): HTMLElement {
   const el = document.createElement('div')
   el.innerHTML = `<span style="display:block;transform:rotate(45deg);font-size:15px;line-height:1;user-select:none">🛹</span>`
   el.style.cssText = `
-    width: 34px;
-    height: 34px;
+    width: 34px; height: 34px;
     background: ${color};
     border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
     border: 2px solid white;
     box-shadow: 0 3px 10px rgba(0,0,0,0.45);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   `
   el.addEventListener('mouseenter', () => {
     el.style.transform = 'rotate(-45deg) scale(1.2)'
-    el.style.boxShadow = `0 5px 14px rgba(0,0,0,0.55)`
   })
   el.addEventListener('mouseleave', () => {
     el.style.transform = 'rotate(-45deg) scale(1)'
-    el.style.boxShadow = `0 3px 10px rgba(0,0,0,0.45)`
   })
   return el
 }
 
-function createUserLocationPin(): HTMLElement {
+function createUserDot(): HTMLElement {
   const el = document.createElement('div')
   el.style.cssText = `
-    width: 18px;
-    height: 18px;
+    width: 18px; height: 18px;
     background: #4ade80;
     border-radius: 50%;
     border: 3px solid white;
@@ -75,36 +74,35 @@ export function MapComponent({
   const mapRef = useRef<any>(null)
   const { resolvedTheme } = useTheme()
 
+  // ── Inicialización: solo se ejecuta una vez ──────────────────────────
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let mapboxgl: any = null
+    if (mapRef.current || !mapContainer.current) return
 
     async function initMap() {
-      if (!mapContainer.current) return
       const mod = await import('mapbox-gl')
       await import('mapbox-gl/dist/mapbox-gl.css' as string)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mapboxgl = (mod as any).default ?? mod
+      const mapboxgl: any = (mod as any).default ?? mod
       mapboxgl.accessToken = MAPBOX_TOKEN
 
-      const style = resolvedTheme === 'dark' ? DARK_STYLE : LIGHT_STYLE
-      const pinColor = resolvedTheme === 'dark' ? '#00aaff' : '#0088cc'
+      const isDark = document.documentElement.classList.contains('dark')
+      const style = isDark ? DARK_STYLE : LIGHT_STYLE
+      const pinColor = isDark ? ACCENT_DARK : ACCENT_LIGHT
 
       const map = new mapboxgl.Map({
-        container: mapContainer.current,
+        container: mapContainer.current!,
         style,
         center: TEPEJI_CENTER,
-        zoom: 13,
+        zoom: TEPEJI_ZOOM,
         interactive,
       })
 
       mapRef.current = map
 
       map.on('load', () => {
-        // Spot pins con icono de skate
+        // Pines de spots
         spots.forEach((spot) => {
           const el = createSkatePin(pinColor)
-
           const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom-left' })
             .setLngLat([spot.longitude, spot.latitude])
             .setPopup(
@@ -116,38 +114,26 @@ export function MapComponent({
               )
             )
             .addTo(map)
-
-          el.addEventListener('click', (e) => {
-            e.stopPropagation()
-            onSpotClick?.(spot)
-          })
+          el.addEventListener('click', (e) => { e.stopPropagation(); onSpotClick?.(spot) })
           void marker
         })
 
-        // Geolocalización del usuario
+        // Geolocalización solo para el formulario de agregar spot
         if (centerOnUser && navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
-            (pos) => {
-              const { latitude, longitude } = pos.coords
-              map.flyTo({ center: [longitude, latitude], zoom: 16, speed: 1.4 })
-
-              // Dot verde pulsante en la posición del usuario
-              const userEl = createUserLocationPin()
-              new mapboxgl.Marker({ element: userEl })
-                .setLngLat([longitude, latitude])
+            ({ coords }) => {
+              map.flyTo({ center: [coords.longitude, coords.latitude], zoom: 16, speed: 1.4 })
+              new mapboxgl.Marker({ element: createUserDot() })
+                .setLngLat([coords.longitude, coords.latitude])
                 .addTo(map)
-
-              // Pre-set las coordenadas del click al ubicarlos aquí
-              onMapClick?.(latitude, longitude)
+              onMapClick?.(coords.latitude, coords.longitude)
             },
-            () => {
-              // Permiso denegado → se queda en Tepeji (ya está centrado)
-            },
+            () => { /* permiso denegado → se queda en Tepeji */ },
             { enableHighAccuracy: true, timeout: 8000 }
           )
         }
 
-        // Click en el mapa para seleccionar ubicación
+        // Click para seleccionar ubicación
         if (onMapClick) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           map.on('click', (e: any) => onMapClick(e.lngLat.lat, e.lngLat.lng))
@@ -162,6 +148,14 @@ export function MapComponent({
       mapRef.current = null
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Solo al montar — no depende de resolvedTheme
+
+  // ── Cambio de tema: actualiza solo el estilo, sin re-inicializar ─────
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const style = resolvedTheme === 'dark' ? DARK_STYLE : LIGHT_STYLE
+    map.setStyle(style)
   }, [resolvedTheme])
 
   return <div ref={mapContainer} className={className} />
