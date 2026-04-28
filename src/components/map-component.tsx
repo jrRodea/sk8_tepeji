@@ -10,7 +10,7 @@ const DARK_STYLE  = 'mapbox://styles/mapbox/dark-v11'
 const LIGHT_STYLE = 'mapbox://styles/mapbox/light-v11'
 
 // Coordenadas exactas del centro de Tepeji del Río
-const TEPEJI_CENTER: [number, number] = [-99.3667, 20.2167]
+const TEPEJI_CENTER: [number, number] = [-99.34479, 19.90481]
 const TEPEJI_ZOOM = 13
 
 const ACCENT_DARK  = '#00aaff'
