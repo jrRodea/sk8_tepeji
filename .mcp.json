@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "clerk": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@clerk/clerk-mcp"],
+      "env": {
+        "CLERK_SECRET_KEY": "sk_test_8TNjWwcFKztYnZae1pNfgFbkULA8p098vxvIKDaZzo"
+      }
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=exgpwlsgphxmmilsybdk&read_only=true"
+    }
+  }
+}
