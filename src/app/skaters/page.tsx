@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { Suspense } from 'react'
 import { createServerClient } from '@/lib/supabase-server'
 import { SkaterCard, SkaterCardSkeleton } from '@/components/skater-card'

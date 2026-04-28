@@ -72,6 +72,8 @@ export function MapComponent({
   const mapContainer = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clickMarkerRef = useRef<any>(null)
   const { resolvedTheme } = useTheme()
 
   // ── Inicialización: solo se ejecuta una vez ──────────────────────────
@@ -136,7 +138,14 @@ export function MapComponent({
         // Click para seleccionar ubicación
         if (onMapClick) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          map.on('click', (e: any) => onMapClick(e.lngLat.lat, e.lngLat.lng))
+          map.on('click', (e: any) => {
+            const { lat, lng } = e.lngLat
+            clickMarkerRef.current?.remove()
+            clickMarkerRef.current = new mapboxgl.Marker({ color: pinColor, draggable: false })
+              .setLngLat([lng, lat])
+              .addTo(map)
+            onMapClick(lat, lng)
+          })
         }
       })
     }
@@ -144,6 +153,8 @@ export function MapComponent({
     initMap()
 
     return () => {
+      clickMarkerRef.current?.remove()
+      clickMarkerRef.current = null
       mapRef.current?.remove()
       mapRef.current = null
     }
