@@ -3,9 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useUser, UserButton, SignInButton } from '@clerk/nextjs'
-import { Home, MapPin, Plus, Trophy, Users, Zap } from 'lucide-react'
+import { Home, MapPin, Plus, Trophy, Users, Zap, Shield } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 const navItems = [
   { href: '/',          label: 'Inicio',    icon: Home },
@@ -16,7 +18,18 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname()
-  const { isSignedIn } = useUser()
+  const { isSignedIn, user } = useUser()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    if (!isSignedIn || !user?.id) { setIsAdmin(false); return }
+    supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }) => setIsAdmin(data?.role === 'admin'))
+  }, [isSignedIn, user?.id])
 
   return (
     <>
@@ -58,6 +71,21 @@ export function Navigation() {
             >
               <Plus size={18} />
               Subir contenido
+            </Link>
+          )}
+
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors mt-1',
+                pathname === '/admin'
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
+            >
+              <Shield size={18} />
+              Admin
             </Link>
           )}
         </nav>
@@ -102,6 +130,20 @@ export function Navigation() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                pathname === '/admin'
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
+            >
+              <Shield size={15} />
+              Admin
+            </Link>
+          )}
           {isSignedIn && (
             <Link href="/subir" className="btn-primary text-xs py-2 px-4">
               + Subir
