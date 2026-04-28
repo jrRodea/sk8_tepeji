@@ -191,6 +191,12 @@
   @apply bg-yellow-500/15 text-yellow-500 border border-yellow-500/30;
 }
 
+/* Animación punto de ubicación del usuario */
+@keyframes pulse-user {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(74, 222, 128, 0.35); }
+  50%       { box-shadow: 0 0 0 10px rgba(74, 222, 128, 0); }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 4px;

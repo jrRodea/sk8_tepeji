@@ -199,11 +199,14 @@ export default function SubirPage() {
 
           <div>
             <Label>Ubicación en el mapa</Label>
-            <p className="text-xs text-muted-foreground mb-2">Haz clic en el mapa para marcar el spot</p>
-            <div className="h-48 rounded-xl overflow-hidden border border-border">
+            <p className="text-xs text-muted-foreground mb-2">
+              El mapa se centra en tu ubicación — haz clic para ajustar el punto exacto
+            </p>
+            <div className="h-52 rounded-xl overflow-hidden border border-border">
               <MapComponent
                 onMapClick={(lat, lng) => { setSpotLat(lat); setSpotLng(lng) }}
                 interactive
+                centerOnUser
                 className="w-full h-full"
               />
             </div>

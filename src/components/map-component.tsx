@@ -16,7 +16,50 @@ interface MapComponentProps {
   onSpotClick?: (spot: Spot) => void
   onMapClick?: (lat: number, lng: number) => void
   interactive?: boolean
+  centerOnUser?: boolean
   className?: string
+}
+
+function createSkatePin(color: string): HTMLElement {
+  const el = document.createElement('div')
+  el.innerHTML = `<span style="display:block;transform:rotate(45deg);font-size:15px;line-height:1;user-select:none">🛹</span>`
+  el.style.cssText = `
+    width: 34px;
+    height: 34px;
+    background: ${color};
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.45);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  `
+  el.addEventListener('mouseenter', () => {
+    el.style.transform = 'rotate(-45deg) scale(1.2)'
+    el.style.boxShadow = `0 5px 14px rgba(0,0,0,0.55)`
+  })
+  el.addEventListener('mouseleave', () => {
+    el.style.transform = 'rotate(-45deg) scale(1)'
+    el.style.boxShadow = `0 3px 10px rgba(0,0,0,0.45)`
+  })
+  return el
+}
+
+function createUserLocationPin(): HTMLElement {
+  const el = document.createElement('div')
+  el.style.cssText = `
+    width: 18px;
+    height: 18px;
+    background: #4ade80;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 4px rgba(74,222,128,0.3);
+    animation: pulse-user 2s ease-in-out infinite;
+  `
+  return el
 }
 
 export function MapComponent({
@@ -24,6 +67,7 @@ export function MapComponent({
   onSpotClick,
   onMapClick,
   interactive = true,
+  centerOnUser = false,
   className = 'w-full h-full',
 }: MapComponentProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -39,14 +83,14 @@ export function MapComponent({
       if (!mapContainer.current) return
       const mod = await import('mapbox-gl')
       await import('mapbox-gl/dist/mapbox-gl.css' as string)
-      mapboxgl = (mod as any).default ?? mod
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(mapboxgl as any).accessToken = MAPBOX_TOKEN
+      mapboxgl = (mod as any).default ?? mod
+      mapboxgl.accessToken = MAPBOX_TOKEN
 
       const style = resolvedTheme === 'dark' ? DARK_STYLE : LIGHT_STYLE
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const map = new (mapboxgl as any).Map({
+      const pinColor = resolvedTheme === 'dark' ? '#00aaff' : '#0088cc'
+
+      const map = new mapboxgl.Map({
         container: mapContainer.current,
         style,
         center: TEPEJI_CENTER,
@@ -57,33 +101,53 @@ export function MapComponent({
       mapRef.current = map
 
       map.on('load', () => {
+        // Spot pins con icono de skate
         spots.forEach((spot) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const el = document.createElement('div')
-          el.className = 'spot-pin'
-          el.style.cssText = `
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: ${resolvedTheme === 'dark' ? '#00aaff' : '#0088cc'};
-            border: 2px solid white;
-            box-shadow: 0 0 8px ${resolvedTheme === 'dark' ? 'rgba(0,170,255,0.6)' : 'rgba(0,136,204,0.4)'};
-            cursor: pointer;
-          `
+          const el = createSkatePin(pinColor)
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const marker = new (mapboxgl as any).Marker({ element: el })
+          const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom-left' })
             .setLngLat([spot.longitude, spot.latitude])
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .setPopup(new (mapboxgl as any).Popup({ offset: 12 }).setHTML(
-              `<strong style="font-family:'Bebas Neue',sans-serif;font-size:18px">${spot.name}</strong>
-               <p style="margin:2px 0 0;font-size:12px;color:#666">${spot.difficulty}</p>`
-            ))
+            .setPopup(
+              new mapboxgl.Popup({ offset: 14, closeButton: false }).setHTML(
+                `<div style="font-family:system-ui;padding:2px 0">
+                   <strong style="font-family:'Bebas Neue',sans-serif;font-size:17px;display:block">${spot.name}</strong>
+                   <span style="font-size:11px;color:#888">${spot.difficulty} · ${spot.status}</span>
+                 </div>`
+              )
+            )
             .addTo(map)
 
-          el.addEventListener('click', () => onSpotClick?.(spot))
+          el.addEventListener('click', (e) => {
+            e.stopPropagation()
+            onSpotClick?.(spot)
+          })
           void marker
         })
 
+        // Geolocalización del usuario
+        if (centerOnUser && navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const { latitude, longitude } = pos.coords
+              map.flyTo({ center: [longitude, latitude], zoom: 16, speed: 1.4 })
+
+              // Dot verde pulsante en la posición del usuario
+              const userEl = createUserLocationPin()
+              new mapboxgl.Marker({ element: userEl })
+                .setLngLat([longitude, latitude])
+                .addTo(map)
+
+              // Pre-set las coordenadas del click al ubicarlos aquí
+              onMapClick?.(latitude, longitude)
+            },
+            () => {
+              // Permiso denegado → se queda en Tepeji (ya está centrado)
+            },
+            { enableHighAccuracy: true, timeout: 8000 }
+          )
+        }
+
+        // Click en el mapa para seleccionar ubicación
         if (onMapClick) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           map.on('click', (e: any) => onMapClick(e.lngLat.lat, e.lngLat.lng))
@@ -94,8 +158,7 @@ export function MapComponent({
     initMap()
 
     return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(mapRef.current as any)?.remove()
+      mapRef.current?.remove()
       mapRef.current = null
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

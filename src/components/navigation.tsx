@@ -118,6 +118,15 @@ export function Navigation() {
         </div>
       </header>
 
+      {/* ── Mobile top bar (<768px) ── */}
+      <header className="md:hidden fixed top-0 left-0 right-0 h-12 bg-card/95 backdrop-blur-sm border-b border-border flex items-center justify-between px-4 z-40">
+        <Link href="/" className="flex items-center gap-1.5">
+          <Zap size={16} className="text-primary" />
+          <span className="font-heading text-lg tracking-wider">SK8 TEPEJI</span>
+        </Link>
+        <ThemeToggle />
+      </header>
+
       {/* ── Mobile bottom navbar (<768px) ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-card/95 backdrop-blur-sm border-t border-border flex items-center justify-around px-2 z-40">
         {navItems.slice(0, 2).map(({ href, label, icon: Icon }) => (

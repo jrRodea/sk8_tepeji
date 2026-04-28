@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             storageKey="sk8-theme"
           >
             <Navigation />
-            <main className="pb-20 md:pb-0 md:pt-16 lg:pt-0 lg:pl-60">
+            <main className="pb-20 pt-12 md:pb-0 md:pt-16 lg:pt-0 lg:pl-60">
               {children}
             </main>
             <Toaster richColors position="top-center" />
