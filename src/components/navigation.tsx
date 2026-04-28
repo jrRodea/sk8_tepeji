@@ -166,7 +166,23 @@ export function Navigation() {
           <Zap size={16} className="text-primary" />
           <span className="font-heading text-lg tracking-wider">SK8 TEPEJI</span>
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={cn(
+                'w-9 h-9 flex items-center justify-center rounded-full transition-colors',
+                pathname === '/admin'
+                  ? 'text-destructive bg-destructive/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
+              aria-label="Panel Admin"
+            >
+              <Shield size={18} />
+            </Link>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       {/* ── Mobile bottom navbar (<768px) ── */}
