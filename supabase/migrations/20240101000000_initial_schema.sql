@@ -2,8 +2,9 @@
 create extension if not exists "uuid-ossp";
 
 -- Perfiles (sincronizados desde webhook de Clerk)
+-- id es text porque Clerk usa IDs tipo 'user_xxx', no UUIDs
 create table if not exists profiles (
-  id uuid primary key,
+  id text primary key,
   username text unique,
   avatar_url text,
   style text[] default '{}',
@@ -21,7 +22,7 @@ create table if not exists spots (
   longitude float8 not null,
   difficulty text not null check (difficulty in ('Fácil', 'Medio', 'Pro')),
   status text default 'Activo' check (status in ('Activo', 'Borrado', 'En obras')),
-  added_by uuid references profiles(id) on delete set null,
+  added_by text references profiles(id) on delete set null,
   created_at timestamptz default now()
 );
 
@@ -30,7 +31,7 @@ create table if not exists spot_photos (
   id uuid primary key default gen_random_uuid(),
   spot_id uuid references spots(id) on delete cascade,
   url text not null,
-  uploaded_by uuid references profiles(id) on delete set null,
+  uploaded_by text references profiles(id) on delete set null,
   created_at timestamptz default now()
 );
 
@@ -38,7 +39,7 @@ create table if not exists spot_photos (
 create table if not exists tricks (
   id uuid primary key default gen_random_uuid(),
   spot_id uuid references spots(id) on delete cascade,
-  posted_by uuid references profiles(id) on delete set null,
+  posted_by text references profiles(id) on delete set null,
   trick_name text not null,
   media_url text,
   media_type text check (media_type in ('imagen', 'video')),
@@ -50,7 +51,7 @@ create table if not exists tricks (
 create table if not exists votes (
   id uuid primary key default gen_random_uuid(),
   trick_id uuid references tricks(id) on delete cascade,
-  user_id uuid references profiles(id) on delete cascade,
+  user_id text references profiles(id) on delete cascade,
   unique(trick_id, user_id)
 );
 
